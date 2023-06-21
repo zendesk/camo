@@ -20,8 +20,16 @@
       "description": "The hostname for the camo server.",
       "required": false
     },
+    "CAMO_KEY_UPCOMING": {
+      "description": "The upcoming key for request signing.",
+      "generator": "secret"
+    },
     "CAMO_KEY": {
-      "description": "The fully qualified domain name for camo to run on.",
+      "description": "The current key for request signing.",
+      "generator": "secret"
+    },
+    "CAMO_KEY_DEPRECATED": {
+      "description": "The deprecated key for request signing.",
       "generator": "secret"
     },
     "CAMO_LENGTH_LIMIT": {

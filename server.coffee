@@ -6,14 +6,16 @@ Https       = require 'https'
 Crypto      = require 'crypto'
 QueryString = require 'querystring'
 
-port            = parseInt process.env.PORT        || 8081, 10
-version         = require(Path.resolve(__dirname, "package.json")).version
-shared_key      = process.env.CAMO_KEY             || '0x24FEEDFACEDEADBEEFCAFE'
-max_redirects   = process.env.CAMO_MAX_REDIRECTS   || 4
-camo_hostname   = process.env.CAMO_HOSTNAME        || "unknown"
-socket_timeout  = process.env.CAMO_SOCKET_TIMEOUT  || 10
-logging_enabled = process.env.CAMO_LOGGING_ENABLED || "disabled"
-keep_alive = process.env.CAMO_KEEP_ALIVE || "false"
+port                  = parseInt process.env.PORT        || 8081, 10
+version               = require(Path.resolve(__dirname, "package.json")).version
+shared_key_upcoming   = process.env.CAMO_KEY_UPCOMING    || '0x24FEEDFACEDEADBEEFCAFE'
+shared_key            = process.env.CAMO_KEY             || '0x24FEEDFACEDEADBEEFCAFE'
+shared_key_deprecated = process.env.CAMO_KEY_DEPRECATED  || '0x24FEEDFACEDEADBEEFCAFE'
+max_redirects         = process.env.CAMO_MAX_REDIRECTS   || 4
+camo_hostname         = process.env.CAMO_HOSTNAME        || "unknown"
+socket_timeout        = process.env.CAMO_SOCKET_TIMEOUT  || 10
+logging_enabled       = process.env.CAMO_LOGGING_ENABLED || "disabled"
+keep_alive            = process.env.CAMO_KEEP_ALIVE      || "false"
 
 content_length_limit = parseInt(process.env.CAMO_LENGTH_LIMIT || 5242880, 10)
 
@@ -203,6 +205,20 @@ hexdec = (str) ->
       buf[i/2] = parseInt(str[i..i+1], 16)
     buf.toString()
 
+decoded_url = (hmac, dest_url) ->
+  try
+    hmac.update(dest_url, 'utf8')
+  catch error
+    return nil
+
+  hmac_digest = hmac.digest('hex')
+
+  if hmac_digest == query_digest
+    return Url.parse dest_url
+  else
+    return nil
+
+
 server = Http.createServer (req, resp) ->
   if req.method != 'GET' || req.url == '/'
     resp.writeHead 200, default_security_headers
@@ -251,21 +267,19 @@ server = Http.createServer (req, resp) ->
       return four_oh_four(resp, "Requesting from self")
 
     if url.pathname? && dest_url
-      hmac = Crypto.createHmac("sha1", shared_key)
+      hmac_current = Crypto.createHmac("sha1", shared_key)
+      hmac_deprecated = Crypto.createHmac("sha1", shared_key_deprecated)
+      hmac_upcoming = Crypto.createHmac("sha1", shared_key_upcoming)
 
-      try
-        hmac.update(dest_url, 'utf8')
-      catch error
-        return four_oh_four(resp, "could not create checksum")
+      url = nil
+      for hmac in [hmac_current, hmac_deprecated, hmac_upcoming]
+        url = decoded_url(hmac, dest_url)
+        if url then break
 
-      hmac_digest = hmac.digest('hex')
-
-      if hmac_digest == query_digest
-        url = Url.parse dest_url
-
+      if url
         process_url url, transferredHeaders, resp, max_redirects
       else
-        four_oh_four(resp, "checksum mismatch #{hmac_digest}:#{query_digest}")
+        return four_oh_four(resp, "could not create checksum")
     else
       four_oh_four(resp, "No pathname provided on the server")
 
