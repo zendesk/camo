@@ -196,7 +196,7 @@ process_url = (url, transferredHeaders, resp, remaining_redirects) ->
     else
       four_oh_four(resp, "No host found " + url.host, url)
   catch error
-    four_oh_four(resp, "failed at process_url")
+    four_oh_four(resp, "Failed at process_url because of #{error.class}:#{error.message}")
 
 # decode a string of two char hex digits
 hexdec = (str) ->
@@ -273,7 +273,7 @@ server = Http.createServer (req, resp) ->
       else
         four_oh_four(resp, "No pathname provided on the server")
   catch error
-    four_oh_four(resp, "unable to create server")
+    four_oh_four(resp, "Unable to create server because of #{error.class}:#{error.message}")
 
 
 console.log "SSL-Proxy running on #{port} with node:#{process.version} pid:#{process.pid} version:#{version}."

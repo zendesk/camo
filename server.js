@@ -235,7 +235,7 @@
       }
     } catch (error1) {
       error = error1;
-      return four_oh_four(resp, "failed at process_url");
+      return four_oh_four(resp, `Failed at process_url because of ${error.class}:${error.message}`);
     }
   };
 
@@ -318,7 +318,7 @@
       }
     } catch (error1) {
       error = error1;
-      return four_oh_four(resp, "unable to create server");
+      return four_oh_four(resp, `Unable to create server because of ${error.class}:${error.message}`);
     }
   });
 
