@@ -14,6 +14,7 @@ camo_hostname   = process.env.CAMO_HOSTNAME        || "unknown"
 socket_timeout  = process.env.CAMO_SOCKET_TIMEOUT  || 10
 logging_enabled = process.env.CAMO_LOGGING_ENABLED || "disabled"
 keep_alive = process.env.CAMO_KEEP_ALIVE || "false"
+reject_basic_auth = process.env.CAMO_REJECT_BASIC_AUTH || "false"
 
 content_length_limit = parseInt(process.env.CAMO_LENGTH_LIMIT || 5242880, 10)
 
@@ -61,6 +62,64 @@ finish = (resp, str) ->
   current_connections -= 1
   current_connections  = 0 if current_connections < 1
   resp.connection && resp.end str
+
+# Check if URL requires basic authentication by making a HEAD request
+check_basic_auth_required = (url, transferredHeaders, callback) ->
+  try
+    if url.protocol is 'https:'
+      Protocol = Https
+    else if url.protocol is 'http:'
+      Protocol = Http
+    else
+      callback(false)
+      return
+
+    queryPath = url.pathname
+    if url.query?
+      queryPath += "?#{url.query}"
+
+    requestOptions =
+      method: 'HEAD'
+      hostname: url.hostname
+      port: url.port
+      path: queryPath
+      headers: transferredHeaders
+
+    if keep_alive == "false"
+      requestOptions['agent'] = false
+
+    headReq = Protocol.request requestOptions, (headResp) ->
+      # Check for 401 with WWW-Authenticate header
+      if headResp.statusCode == 401 && headResp.headers['www-authenticate']
+        headResp.destroy()
+        callback(true)
+      # Check redirects for 401
+      else if headResp.statusCode in [301, 302, 303, 307]
+        if headResp.headers['location']
+          redirectUrl = Url.parse headResp.headers['location']
+          unless redirectUrl.host? and redirectUrl.hostname?
+            redirectUrl.host = redirectUrl.hostname = url.hostname
+            redirectUrl.protocol = url.protocol
+          headResp.destroy()
+          # Recursively check the redirect target
+          check_basic_auth_required(redirectUrl, transferredHeaders, callback)
+        else
+          headResp.destroy()
+          callback(false)
+      else
+        headResp.destroy()
+        callback(false)
+
+    headReq.setTimeout (socket_timeout * 1000), ->
+      headReq.abort()
+      callback(false)
+
+    headReq.on 'error', (error) ->
+      callback(false)
+
+    headReq.end()
+  catch error
+    callback(false)
 
 process_url = (url, transferredHeaders, resp, remaining_redirects) ->
   try
@@ -267,7 +326,19 @@ server = Http.createServer (req, resp) ->
         if hmac_digest == query_digest
           url = Url.parse dest_url
 
-          process_url url, transferredHeaders, resp, max_redirects
+          # Check for basic auth in URL
+          if reject_basic_auth == "true" && url.auth
+            return four_oh_four(resp, "Basic auth in URL is not allowed")
+
+          # Check if server requires basic authentication
+          if reject_basic_auth == "true"
+            check_basic_auth_required url, transferredHeaders, (requires_auth) ->
+              if requires_auth
+                four_oh_four(resp, "Basic authentication required by server")
+              else
+                process_url url, transferredHeaders, resp, max_redirects
+          else
+            process_url url, transferredHeaders, resp, max_redirects
         else
           four_oh_four(resp, "checksum mismatch #{hmac_digest}:#{query_digest}")
       else

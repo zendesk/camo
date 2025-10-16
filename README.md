@@ -52,6 +52,7 @@ Camo is configured through environment variables.
 * `CAMO_TIMING_ALLOW_ORIGIN`: The string for Camo to include in the [`Timing-Allow-Origin` header](http://www.w3.org/TR/resource-timing/#cross-origin-resources) it sends in responses to clients. The header is omitted if this environment variable is not set. (default: not set)
 * `CAMO_HOSTNAME`: The `Camo-Host` header value that Camo will send. (default: `unknown`)
 * `CAMO_KEEP_ALIVE`: Whether or not to enable keep-alive session. (default: `false`)
+* `CAMO_REJECT_BASIC_AUTH`: When set to `true`, Camo will reject (return 404) any image URLs that require basic authentication, either via credentials in the URL or via 401 responses with WWW-Authenticate headers. (default: `false`)
 
 ## Testing Functionality
 
@@ -66,6 +67,10 @@ Camo is configured through environment variables.
 ### In another shell
 
     % rake
+
+### Testing Basic Auth Rejection
+
+See [TESTING_BASIC_AUTH.md](TESTING_BASIC_AUTH.md) for detailed information on testing the `CAMO_REJECT_BASIC_AUTH` functionality.
 
 ### Debugging
 

@@ -218,6 +218,38 @@ module CamoProxyTests
     assert_equal("0", response.headers[:expires])
     assert_equal("no-cache, no-store, private, must-revalidate", response.headers[:cache_control])
   end
+
+  def test_rejects_urls_with_basic_auth_credentials_when_enabled
+    # This test assumes CAMO_REJECT_BASIC_AUTH=true is set
+    # Skip if the environment variable is not set to true
+    if ENV['CAMO_REJECT_BASIC_AUTH'] == 'true'
+      assert_raise RestClient::ResourceNotFound do
+        request("http://user:password@example.com/image.jpg")
+      end
+    end
+  end
+
+  def test_rejects_server_requiring_basic_auth_when_enabled
+    # This test assumes CAMO_REJECT_BASIC_AUTH=true is set
+    # Skip if the environment variable is not set to true
+    if ENV['CAMO_REJECT_BASIC_AUTH'] == 'true'
+      spawn_server(:basic_auth_image) do |host|
+        assert_raise RestClient::ResourceNotFound do
+          request("http://#{host}/octocat.jpg")
+        end
+      end
+    end
+  end
+
+  def test_allows_normal_images_when_reject_basic_auth_enabled
+    # This test verifies normal images still work when CAMO_REJECT_BASIC_AUTH=true
+    if ENV['CAMO_REJECT_BASIC_AUTH'] == 'true'
+      spawn_server(:ok) do |host|
+        response = request("http://#{host}/octocat.jpg")
+        assert_equal(200, response.code)
+      end
+    end
+  end
 end
 
 class CamoProxyQueryStringTest < Test::Unit::TestCase

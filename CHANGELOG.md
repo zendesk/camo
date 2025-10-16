@@ -1,3 +1,8 @@
+Unreleased
+==========
+
+* Add `CAMO_REJECT_BASIC_AUTH` environment variable to reject URLs requiring basic authentication, preventing authentication prompts in browsers.
+
 2.3.0
 =====
 
