@@ -21,7 +21,13 @@
 
   version = require(Path.resolve(__dirname, "package.json")).version;
 
-  shared_key = process.env.CAMO_KEY || '0x24FEEDFACEDEADBEEFCAFE';
+  shared_key = process.env.CAMO_KEY;
+
+  if (!shared_key || shared_key.trim().length === 0) {
+    var message = "CAMO_KEY environment variable must be set. It is a required shared secret used to generate HMAC digests and has no default.";
+    console.error(`[${new Date().toISOString()}] ${message}`);
+    process.exit(1);
+  }
 
   max_redirects = process.env.CAMO_MAX_REDIRECTS || 4;
 
