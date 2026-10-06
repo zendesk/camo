@@ -12,7 +12,7 @@ shared_key      = process.env.CAMO_KEY
 unless shared_key and shared_key.trim().length > 0
   message = "CAMO_KEY environment variable must be set. It is a required shared secret used to generate HMAC digests and has no default."
   console.error "[#{new Date().toISOString()}] #{message}"
-  throw new Error(message)
+  process.exit 1
 max_redirects   = process.env.CAMO_MAX_REDIRECTS   || 4
 camo_hostname   = process.env.CAMO_HOSTNAME        || "unknown"
 socket_timeout  = process.env.CAMO_SOCKET_TIMEOUT  || 10
