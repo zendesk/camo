@@ -2,6 +2,9 @@ language: ruby
 rvm:
 - 2.3.4
 gemfile: test.gemfile
+env:
+  global:
+  - CAMO_KEY=ci-test-key
 before_install:
 - npm install -g coffee-script
 - gem install rake

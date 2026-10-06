@@ -9,7 +9,11 @@ require 'test/unit'
 
 module CamoProxyTests
   def config
-    { 'key'  => ENV['CAMO_KEY']  || "0x24FEEDFACEDEADBEEFCAFE",
+    key = ENV['CAMO_KEY']
+    if key.nil? || key.strip.empty?
+      raise "CAMO_KEY environment variable must be set. It is a required shared secret used to generate HMAC digests and has no default."
+    end
+    { 'key'  => key,
       'host' => ENV['CAMO_HOST'] || "http://localhost:8081" }
   end
 
